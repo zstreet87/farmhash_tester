@@ -1,31 +1,9 @@
-// Copyright (c) 2014 Google, Inc.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//
-// FarmHash, by Geoff Pike
-
 #ifndef FARM_HASH_GPU_H_
 #define FARM_HASH_GPU_H_
 
-#include <cstdint>
-#include <string.h>   // for memcpy and memset
 #include <cassert>
+#include <cstdint>
+#include <string.h> // for memcpy and memset
 
 #define NAMESPACE_FOR_HASH_FUNCTIONS_GPU util_gpu
 #define DEVICE_MODIFIER __device__ __host__
@@ -58,7 +36,7 @@ STATIC_INLINE uint64_t Rotate64(uint64_t val, int shift) {
   return BasicRotate64(val, shift);
 }
 
-}  // namespace NAMESPACE_FOR_HASH_FUNCTIONS_GPU
+} // namespace NAMESPACE_FOR_HASH_FUNCTIONS_GPU
 
 // FARMHASH PORTABILITY LAYER: debug mode or max speed?
 // One may use -DFARMHASH_DEBUG=1 or -DFARMHASH_DEBUG=0 to force the issue.
@@ -75,7 +53,7 @@ static const uint64_t k0 = 0xc3a5c85c97cb3127ULL;
 static const uint64_t k1 = 0xb492b66fbe98f273ULL;
 static const uint64_t k2 = 0x9ae16a3b2f90404fULL;
 
-}  // namespace NAMESPACE_FOR_HASH_FUNCTIONS_GPU
+} // namespace NAMESPACE_FOR_HASH_FUNCTIONS_GPU
 
 using namespace NAMESPACE_FOR_HASH_FUNCTIONS_GPU;
 namespace farmhashna_gpu {
@@ -85,9 +63,7 @@ namespace farmhashna_gpu {
 #undef Rotate
 #define Rotate Rotate64
 
-STATIC_INLINE uint64_t ShiftMix(uint64_t val) {
-  return val ^ (val >> 47);
-}
+STATIC_INLINE uint64_t ShiftMix(uint64_t val) { return val ^ (val >> 47); }
 
 STATIC_INLINE uint64_t HashLen16(uint64_t u, uint64_t v, uint64_t mul) {
   // Murmur-inspired hashing.
@@ -138,8 +114,8 @@ STATIC_INLINE uint64_t HashLen17to32(const char *s, size_t len) {
 
 // Return a 16-byte hash for 48 bytes.  Quick and dirty.
 // Callers do best to use "random-looking" values for a and b.
-STATIC_INLINE Pair WeakHashLen32WithSeeds(
-    uint64_t w, uint64_t x, uint64_t y, uint64_t z, uint64_t a, uint64_t b) {
+STATIC_INLINE Pair WeakHashLen32WithSeeds(uint64_t w, uint64_t x, uint64_t y,
+                                          uint64_t z, uint64_t a, uint64_t b) {
   a += w;
   b = Rotate(b + a + z, 21);
   uint64_t c = a;
@@ -150,14 +126,10 @@ STATIC_INLINE Pair WeakHashLen32WithSeeds(
 }
 
 // Return a 16-byte hash for s[0] ... s[31], a, and b.  Quick and dirty.
-STATIC_INLINE Pair WeakHashLen32WithSeeds(
-    const char* s, uint64_t a, uint64_t b) {
-  return WeakHashLen32WithSeeds(Fetch(s),
-                                Fetch(s + 8),
-                                Fetch(s + 16),
-                                Fetch(s + 24),
-                                a,
-                                b);
+STATIC_INLINE Pair WeakHashLen32WithSeeds(const char *s, uint64_t a,
+                                          uint64_t b) {
+  return WeakHashLen32WithSeeds(Fetch(s), Fetch(s + 8), Fetch(s + 16),
+                                Fetch(s + 24), a, b);
 }
 
 // Return an 8-byte hash for 33 to 64 bytes.
@@ -199,8 +171,8 @@ DEVICE_MODIFIER uint64_t Hash64(const char *s, size_t len) {
   x = x * k2 + Fetch(s);
 
   // Set end so that after the loop we have 1 to 64 bytes left to process.
-  const char* end = s + ((len - 1) / 64) * 64;
-  const char* last64 = end + ((len - 1) & 63) - 63;
+  const char *end = s + ((len - 1) / 64) * 64;
+  const char *last64 = end + ((len - 1) & 63) - 63;
   assert(s + len - 64 == last64);
   do {
     x = Rotate(x + y + v.first + Fetch(s + 8), 37) * k1;
@@ -232,18 +204,17 @@ DEVICE_MODIFIER uint64_t Hash64(const char *s, size_t len) {
   z = x;
   x = tmp;
   return HashLen16(HashLen16(v.first, w.first, mul) + ShiftMix(y) * k0 + z,
-                   HashLen16(v.second, w.second, mul) + x,
-                   mul);
+                   HashLen16(v.second, w.second, mul) + x, mul);
 }
 
-}  // namespace farmhashna_gpu
+} // namespace farmhashna_gpu
 namespace NAMESPACE_FOR_HASH_FUNCTIONS_GPU {
 
 // Fingerprint function for a byte array.
-DEVICE_MODIFIER uint64_t Fingerprint64(const char* s, size_t len) {
+DEVICE_MODIFIER uint64_t Fingerprint64(const char *s, size_t len) {
   return farmhashna_gpu::Hash64(s, len);
 }
 
-}  // namespace NAMESPACE_FOR_HASH_FUNCTIONS_GPU
+} // namespace NAMESPACE_FOR_HASH_FUNCTIONS_GPU
 
 #endif // FARM_HASH_GPU_H_
