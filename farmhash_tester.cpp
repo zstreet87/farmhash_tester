@@ -1,9 +1,10 @@
 #include <cstring>
+#include <random> //getting extern char s
 #include <hip/hip_runtime.h>
 #include <iostream>
 
-#include "farmhash.h"
 #include "farmhash_gpu.h"
+#include "farmhash.h"
 
 // We set the buffer size to 20 as it is sufficient to cover the number of
 // digits in any integer type.
@@ -12,7 +13,7 @@ constexpr int kSharedMemBufferSizePerThread = 20;
 template <typename T>
 __device__ __forceinline__ void FillDigits(T val, int num_digits, int *i,
                                            char *buf) {
-  // eigen_assert(num_digits <= kSharedMemBufferSizePerThread - (*i));
+  //eigen_assert(num_digits <= kSharedMemBufferSizePerThread - (*i));
 
   int factor = (val < 0 ? -1 : 1);
 
@@ -47,53 +48,46 @@ __device__ __forceinline__ int IntegerToString(T val, char *buf) {
 }
 
 template <typename T>
-__global__ void hipFarmHash(const T *__restrict__ vals, size_t length,
-                            uint64_t *output) {
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  char s[] = " - ";
-  if (idx < length) {
-    int size = IntegerToString(vals[idx],
-                               s + threadIdx.x * kSharedMemBufferSizePerThread);
-    uint64_t a_hash = ::util_gpu::Fingerprint64(
-        s + threadIdx.x * kSharedMemBufferSizePerThread, size);
-  }
+__global__ void kernel(const T *__restrict__ vals, uint64_t *output) {
+
+  output[0] = 10;
+  //int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  //extern __shared__ char s[];
+
+  //int size = IntegerToString(vals[0], s + threadIdx.x * kSharedMemBufferSizePerThread);
+  //output[idx] = ::util_gpu::Fingerprint64(
+  //      s + threadIdx.x * kSharedMemBufferSizePerThread, size);
 }
 
 int main() {
-  const char *inputString = "MY_STRING";
-  size_t length = std::strlen(inputString);
-  uint64_t *gpuHashResult;
-  uint64_t cpuHashResult;
+  const int length = 1;
+  int64_t input = 6;
 
-  const int64_t input = 139753374614784;
+  uint64_t* gpuHashResult;
+  uint64_t* gpuHashResultHost = new uint64_t[length]; // Host memory for GPU results
 
   hipMalloc(&gpuHashResult, length * sizeof(uint64_t));
-
-  hipLaunchKernelGGL(hipFarmHash<int64_t>, dim3(1), dim3(1), 0, 0, &input, 1,
-                     gpuHashResult);
-
-  // Just single gpu so no sync needed
-  // hipDeviceSynchronize();
-
-  cpuHashResult = ::util::Fingerprint64(inputString, length);
-
-  bool success = true;
-  for (size_t i = 0; i < length; i++) {
-    if (gpuHashResult[i] != cpuHashResult) {
-      success = false;
-      break;
-    }
+  if (hipMalloc(&gpuHashResult, length * sizeof(uint64_t)) != hipSuccess) {
+    std::cerr << "hipMalloc failed" << std::endl;
+    return 1;
   }
 
-  if (success) {
-    std::cout << "Hashing successful. GPU and CPU hashes match.\n";
-  } else {
-    std::cout << "Hashing failed. GPU and CPU hashes do not match.\n";
-    std::cout << gpuHashResult[0] << " " << cpuHashResult << "\n" << std::endl;
+  hipLaunchKernelGGL(kernel<int64_t>, dim3(1), dim3(1), 0, 0, &input, gpuHashResult);
+
+  if (hipDeviceSynchronize() != hipSuccess) {
+    std::cerr << "hipDeviceSynchronize failed" << std::endl;
+    return 1;
   }
 
-  // this would make my dev node hang?...
-  // hipFree(gpuHashResult);
+  if (hipMemcpy(gpuHashResultHost, gpuHashResult, length * sizeof(uint64_t), hipMemcpyDeviceToHost) != hipSuccess) {
+    std::cerr << "hipMemcpy failed" << std::endl;
+    return 1;
+  }
+
+  std::cout << gpuHashResultHost[0] << std::endl;
+
+  hipFree(gpuHashResult);
+  delete[] gpuHashResultHost;
 
   return 0;
 }
