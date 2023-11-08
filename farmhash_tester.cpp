@@ -54,7 +54,7 @@ __global__ void kernel(const T *__restrict__ vals, uint64_t *output) {
   int size =
       IntegerToString(vals[idx], s + threadIdx.x * kSharedMemBufferSizePerThread);
   uint64_t a_hash = ::util_gpu::Fingerprint64(
-      s + 0 * kSharedMemBufferSizePerThread, size);
+      s + threadIdx.x * kSharedMemBufferSizePerThread, size);
   int64_t a_bucket = static_cast<int64_t>(a_hash % num_buckets);
   output[idx] = a_bucket;
 }
