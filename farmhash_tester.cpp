@@ -3,7 +3,6 @@
 #include <iostream>
 #include <random> //getting extern char s
 
-#include "farmhash.h"
 #include "farmhash_gpu.h"
 
 // We set the buffer size to 20 as it is sufficient to cover the number of
