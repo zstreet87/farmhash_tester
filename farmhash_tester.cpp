@@ -13,8 +13,6 @@ constexpr int kSharedMemBufferSizePerThread = 20;
 template <typename T>
 __device__ __forceinline__ void FillDigits(T val, int num_digits, int *i,
                                            char *buf) {
-  // eigen_assert(num_digits <= kSharedMemBufferSizePerThread - (*i));
-
   int factor = (val < 0 ? -1 : 1);
 
   int num_digits_a = num_digits;
@@ -50,22 +48,26 @@ __device__ __forceinline__ int IntegerToString(T val, char *buf) {
 template <typename T>
 __global__ void kernel(const T *__restrict__ vals, uint64_t *output) {
 
-  // output[0] = 10;
-  // int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
   extern __shared__ char s[];
 
+  int64_t num_buckets = 100;
   int size =
-      IntegerToString(vals[0], s + threadIdx.x * kSharedMemBufferSizePerThread);
-  output[0] = ::util_gpu::Fingerprint64(
-      s + threadIdx.x * kSharedMemBufferSizePerThread, size);
+      IntegerToString(vals[idx], s + threadIdx.x * kSharedMemBufferSizePerThread);
+  uint64_t a_hash = ::util_gpu::Fingerprint64(
+      s + 0 * kSharedMemBufferSizePerThread, size);
+  int64_t a_bucket = static_cast<int64_t>(a_hash % num_buckets);
+  output[idx] = a_bucket;
 }
 
 int main() {
 
   const int length = 1;
 
-  int8_t inputCPU = 6;
-  int8_t *inputGPU;
+  using templateType = int8_t;
+
+  templateType inputCPU = 6;
+  templateType *inputGPU;
 
   uint64_t *gpuHashResult;
   uint64_t *gpuHashResultHost =
@@ -75,7 +77,7 @@ int main() {
     std::cerr << "hipMalloc failed" << std::endl;
     return 1;
   }
-  hipMemcpy(inputGPU, &inputCPU, length * sizeof(int8_t),
+  hipMemcpy(inputGPU, &inputCPU, length * sizeof(templateType),
             hipMemcpyHostToDevice);
 
   if (hipMalloc(&gpuHashResult, length * sizeof(uint64_t)) != hipSuccess) {
@@ -83,7 +85,7 @@ int main() {
     return 1;
   }
 
-  hipLaunchKernelGGL(kernel<int8_t>, dim3(1), dim3(1), 0, 0, inputGPU,
+  hipLaunchKernelGGL(kernel<templateType>, dim3(1), dim3(1), 0, 0, inputGPU,
                      gpuHashResult);
 
   if (hipDeviceSynchronize() != hipSuccess) {
