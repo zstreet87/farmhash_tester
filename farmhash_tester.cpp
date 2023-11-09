@@ -29,7 +29,7 @@ __device__ __forceinline__ void FillDigits(T val, int num_digits, int *i,
 template <typename T>
 __device__ __forceinline__ int IntegerToString(T val, char *buf) {
   int num_digits = 0;
-  int8_t val_a = val;
+  T val_a = val;
   do {
     val_a = val_a / 10;
     num_digits++;
@@ -48,17 +48,15 @@ __device__ __forceinline__ int IntegerToString(T val, char *buf) {
 template <typename T>
 __global__ void kernel(const T *__restrict__ vals, uint64_t *output) {
 
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
   extern __shared__ char s[];
 
-  int64_t num_buckets = 100;
   GPU_1D_KERNEL_LOOP(tid, 1) {
-    int size = IntegerToString(vals[idx],
+    int size = IntegerToString(vals[tid],
                                s + threadIdx.x * kSharedMemBufferSizePerThread);
     uint64_t a_hash = ::util_gpu::Fingerprint64(
         s + threadIdx.x * kSharedMemBufferSizePerThread, size);
-    int64_t a_bucket = static_cast<int64_t>(a_hash % num_buckets);
-    output[idx] = a_bucket;
+    int64_t a_bucket = static_cast<int64_t>(a_hash % 100);
+    output[tid] = a_bucket;
   }
 }
 
