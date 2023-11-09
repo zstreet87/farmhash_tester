@@ -6,22 +6,6 @@
 
 #include <hip/hip_complex.h>
 
-using gpuStream_t = hipStream_t;
-using gpuEvent_t = hipEvent_t;
-using cudaError = int;
-using cudaError_t = int;
-#define cudaSuccess 0
-#define cudaGetLastError hipGetLastError
-#define gpuEventRecord hipEventRecord
-#define gpuEventDestroy hipEventDestroy
-#define gpuEventSynchronize hipEventSynchronize
-#define gpuEventCreate hipEventCreate
-#define gpuEventCreateWithFlags hipEventCreateWithFlags
-#define gpuEventDisableTiming hipEventDisableTiming
-#define gpuDeviceSynchronize hipDeviceSynchronize
-#define gpuFree hipFree
-static std::string cudaGetErrorString(int err) { return std::to_string(err); }
-
 namespace tensorflow {
 namespace detail {
 
