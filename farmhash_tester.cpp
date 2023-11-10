@@ -46,7 +46,8 @@ __device__ __forceinline__ int IntegerToString(T val, char *buf) {
 }
 
 template <typename T>
-__global__ void kernel(const T *__restrict__ vals, uint64_t *output) {
+
+__global__ __launch_bounds__(1024) void kernel(const T *__restrict__ vals, uint64_t *output) {
 
   extern __shared__ char s[];
 
@@ -64,9 +65,9 @@ int main() {
 
   const int length = 1;
 
-  using templateType = int8_t;
+  using templateType = int32_t;
 
-  templateType inputCPU = 6;
+  templateType inputCPU = 1;
   templateType *inputGPU;
 
   uint64_t *gpuHashResult;
@@ -74,14 +75,14 @@ int main() {
       new uint64_t[length]; // Host memory for GPU results
 
   if (hipMalloc(&inputGPU, length * sizeof(uint64_t)) != hipSuccess) {
-    std::cerr << "hipMalloc failed" << std::endl;
+    std::cerr << "hipMalloc failed for inputGPU" << std::endl;
     return 1;
   }
   hipMemcpy(inputGPU, &inputCPU, length * sizeof(templateType),
             hipMemcpyHostToDevice);
 
   if (hipMalloc(&gpuHashResult, length * sizeof(uint64_t)) != hipSuccess) {
-    std::cerr << "hipMalloc failed" << std::endl;
+    std::cerr << "hipMalloc failed for gpuHashResult" << std::endl;
     return 1;
   }
 
