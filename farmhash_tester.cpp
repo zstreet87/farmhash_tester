@@ -47,7 +47,8 @@ __device__ __forceinline__ int IntegerToString(T val, char *buf) {
 
 template <typename T>
 
-__global__ __launch_bounds__(1024) void kernel(const T *__restrict__ vals, uint64_t *output) {
+__global__ __launch_bounds__(1024) void kernel(const T *__restrict__ vals,
+                                               uint64_t *output) {
 
   extern __shared__ char s[];
 
@@ -87,8 +88,11 @@ int main() {
   }
 
   int smem_bytes_per_block = 20480;
+  int num_blocks = 24;
+  int threads_per_block = 1024;
 
-  hipLaunchKernelGGL(kernel<templateType>, dim3(24), dim3(1024), smem_bytes_per_block, 0, inputGPU,
+  hipLaunchKernelGGL(kernel<templateType>, dim3(num_blocks),
+                     dim3(threads_per_block), smem_bytes_per_block, 0, inputGPU,
                      gpuHashResult);
 
   if (hipDeviceSynchronize() != hipSuccess) {
