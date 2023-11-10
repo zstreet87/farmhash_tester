@@ -65,7 +65,7 @@ int main() {
 
   const int length = 1;
 
-  using templateType = int32_t;
+  using templateType = int;
 
   templateType inputCPU = 1;
   templateType *inputGPU;
@@ -74,19 +74,21 @@ int main() {
   uint64_t *gpuHashResultHost =
       new uint64_t[length]; // Host memory for GPU results
 
-  if (hipMalloc(&inputGPU, length * sizeof(uint64_t)) != hipSuccess) {
+  if (hipMalloc(&inputGPU, length * sizeof(templateType)) != hipSuccess) {
     std::cerr << "hipMalloc failed for inputGPU" << std::endl;
     return 1;
   }
   hipMemcpy(inputGPU, &inputCPU, length * sizeof(templateType),
             hipMemcpyHostToDevice);
 
-  if (hipMalloc(&gpuHashResult, length * sizeof(uint64_t)) != hipSuccess) {
+  if (hipMalloc(&gpuHashResult, length * sizeof(templateType)) != hipSuccess) {
     std::cerr << "hipMalloc failed for gpuHashResult" << std::endl;
     return 1;
   }
 
-  hipLaunchKernelGGL(kernel<templateType>, dim3(1), dim3(1), 0, 0, inputGPU,
+  int smem_bytes_per_block = 20480;
+
+  hipLaunchKernelGGL(kernel<templateType>, dim3(24), dim3(1024), smem_bytes_per_block, 0, inputGPU,
                      gpuHashResult);
 
   if (hipDeviceSynchronize() != hipSuccess) {
@@ -94,7 +96,7 @@ int main() {
     return 1;
   }
 
-  if (hipMemcpy(gpuHashResultHost, gpuHashResult, length * sizeof(uint64_t),
+  if (hipMemcpy(gpuHashResultHost, gpuHashResult, length * sizeof(templateType),
                 hipMemcpyDeviceToHost) != hipSuccess) {
     std::cerr << "hipMemcpy failed" << std::endl;
     return 1;
