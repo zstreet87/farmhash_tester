@@ -29,7 +29,7 @@ __device__ __forceinline__ void FillDigits(T val, int num_digits, int *i,
 template <typename T>
 __device__ __forceinline__ int IntegerToString(T val, char *buf) {
   int num_digits = 0;
-  T val_a = val;
+  int8_t val_a = val;
   do {
     val_a = val_a / 10;
     num_digits++;
@@ -66,7 +66,7 @@ int main() {
 
   const int length = 1;
 
-  using templateType = int;
+  using templateType = int8_t;
 
   templateType inputCPU = 1;
   templateType *inputGPU;
@@ -91,9 +91,8 @@ int main() {
   int num_blocks = 24;
   int threads_per_block = 1024;
 
-  hipLaunchKernelGGL(kernel<templateType>, dim3(num_blocks),
-                     dim3(threads_per_block), smem_bytes_per_block, 0, inputGPU,
-                     gpuHashResult);
+  GpuLaunchKernel(kernel<templateType>, num_blocks, threads_per_block, 
+		  smem_bytes_per_block, 94274085643200, inputGPU, gpuHashResult);
 
   if (hipDeviceSynchronize() != hipSuccess) {
     std::cerr << "hipDeviceSynchronize failed" << std::endl;
