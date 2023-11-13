@@ -3,7 +3,6 @@
 #include <iostream>
 #include <random> //getting extern char s
 
-#include "farmhash_gpu.h"
 #include "gpu_kernel_helper.h"
 
 // We set the buffer size to 20 as it is sufficient to cover the number of
@@ -11,11 +10,11 @@
 constexpr int kSharedMemBufferSizePerThread = 20;
 
 template <typename T>
-__device__ __forceinline__ void FillDigits(T val, int num_digits, int *i,
+__device__ __forceinline__ void FillDigits(T val, T num_digits, int *i,
                                            char *buf) {
   int factor = (val < 0 ? -1 : 1);
 
-  int num_digits_a = num_digits;
+  T num_digits_a = num_digits;
   do {
     int digit = static_cast<int>((val % 10) * factor);
     buf[(*i) + num_digits - 1] = digit + '0';
@@ -28,7 +27,7 @@ __device__ __forceinline__ void FillDigits(T val, int num_digits, int *i,
 
 template <typename T>
 __device__ __forceinline__ int IntegerToString(T val, char *buf) {
-  int num_digits = 0;
+  T num_digits = 0;
   T val_a = val;
   do {
     val_a = val_a / 10;
@@ -52,13 +51,11 @@ __global__ __launch_bounds__(1024) void kernel(const T *__restrict__ vals,
 
   extern __shared__ char s[];
 
-  GPU_1D_KERNEL_LOOP(tid, 1) {
+  int val_size = 1;
+  GPU_1D_KERNEL_LOOP(tid, val_size) {
     int size = IntegerToString(vals[tid],
                                s + threadIdx.x * kSharedMemBufferSizePerThread);
-    uint64_t a_hash = ::util_gpu::Fingerprint64(
-        s + threadIdx.x * kSharedMemBufferSizePerThread, size);
-    int64_t a_bucket = static_cast<int64_t>(a_hash % 100);
-    output[tid] = a_bucket;
+    output[tid] = size;
   }
 }
 
@@ -66,9 +63,9 @@ int main() {
 
   const int length = 1;
 
-  using templateType = int32_t;
+  using templateType = int8_t;
 
-  templateType inputCPU = 1;
+  templateType inputCPU = 5;
   templateType *inputGPU;
 
   uint64_t *gpuHashResult;
