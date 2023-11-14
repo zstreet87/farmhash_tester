@@ -63,14 +63,14 @@ int main() {
 
   const int length = 1;
 
-  using templateType = int8_t;
+  using templateType = int32_t;
 
   templateType inputCPU = 5;
   templateType *inputGPU;
 
   uint64_t *gpuHashResult;
   uint64_t *gpuHashResultHost =
-      new uint64_t[length]; // Host memory for GPU results
+      new uint64_t[length * sizeof(templateType)]; // Host memory for GPU results
 
   if (hipMalloc(&inputGPU, length * sizeof(templateType)) != hipSuccess) {
     std::cerr << "hipMalloc failed for inputGPU" << std::endl;
