@@ -10,7 +10,7 @@
 constexpr int kSharedMemBufferSizePerThread = 20;
 
 template <typename T>
-__device__ __forceinline__ void FillDigits(T val, T num_digits, int *i,
+__device__ __forceinline__ void FillDigits(T val, int num_digits, int *i,
                                            char *buf) {
   int factor = (val < 0 ? -1 : 1);
 
@@ -27,7 +27,7 @@ __device__ __forceinline__ void FillDigits(T val, T num_digits, int *i,
 
 template <typename T>
 __device__ __forceinline__ int IntegerToString(T val, char *buf) {
-  T num_digits = 0;
+  int num_digits = 0;
   T val_a = val;
   do {
     val_a = val_a / 10;
